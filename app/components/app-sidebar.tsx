@@ -3,7 +3,7 @@
 import { HashIcon } from "@phosphor-icons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
- 
+import { Authenticated, Unauthenticated, AuthLoading, useQuery } from "convex/react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button";
+import { NavUser } from "./nav-user";
+import { api } from "@/convex/_generated/api";
+import { Skeleton } from "@/components/ui/skeleton";
  
 const items = [
   {
@@ -36,6 +41,7 @@ const items = [
  
 export function AppSidebar() {
   const pathname = usePathname()
+  const user = useQuery(api.users.getCurrentUser);
 
   return (
     <Sidebar>
@@ -78,6 +84,31 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="pb-4">
+        <Authenticated>
+          <NavUser user={{ username: user?.username || '', email: user?.email || '' }} />
+        </Authenticated>
+        <Unauthenticated>
+          <Button asChild className="py-5">
+                <Link href="/login" className="flex items-center justify-center">
+                    <span className="font-semibold">log in</span>
+                </Link>
+            </Button>
+        </Unauthenticated>
+        <AuthLoading>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" disabled>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <Skeleton className="h-4 w-20 mb-1" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="ml-auto size-4 rounded" />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </AuthLoading>
+      </SidebarFooter>
     </Sidebar>
   )
 }

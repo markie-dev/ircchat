@@ -16,7 +16,11 @@ cd ircchat
 ```
 bun install
 ```
-4. run dev server
+4. run convex
+```
+bunx convex dev
+```
+5. run dev server
 ```
 bun dev
 ```
