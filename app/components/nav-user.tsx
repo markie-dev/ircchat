@@ -1,10 +1,6 @@
-"use client"
+"use client";
 
-import {
-  DotsThreeVerticalIcon,
-  SignOutIcon,
-  UserIcon,
-} from "@phosphor-icons/react"
+import { SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,13 +9,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import { useRouter } from "next/navigation";
 import { useAuthActions } from "@convex-dev/auth/react";
 
@@ -27,11 +23,11 @@ export function NavUser({
   user,
 }: {
   user: {
-    username: string
-    email: string
-  }
+    username: string;
+    email: string;
+  };
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile } = useSidebar();
   const router = useRouter();
   const { signOut } = useAuthActions();
   return (
@@ -49,7 +45,6 @@ export function NavUser({
                   {user.email}
                 </span>
               </div>
-              <DotsThreeVerticalIcon weight="bold" className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -70,7 +65,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push('/username')}>
+              <DropdownMenuItem onClick={() => router.push("/username")}>
                 <UserIcon weight="bold" className="size-4" />
                 change username
               </DropdownMenuItem>
@@ -84,5 +79,5 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

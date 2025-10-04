@@ -7,25 +7,24 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    
+
     if (userId === null) {
       return null;
     }
 
-    const user = await ctx.db.get(userId);
-    return user;
+    return await ctx.db.get(userId);
   },
 });
 
 // check if username exists
 export const checkUsername = query({
   args: { username: v.string() },
-  handler: async (ctx, { username }) => {
+  handler: async (ctx, args) => {
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("username", (q) => q.eq("username", username))
+      .withIndex("username", (q) => q.eq("username", args.username))
       .first();
-    
+
     return existingUser !== null;
   },
 });
@@ -33,24 +32,18 @@ export const checkUsername = query({
 // update username
 export const updateUsername = mutation({
   args: { username: v.string() },
-  handler: async (ctx, { username }) => {
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    
+
     if (userId === null) {
       throw new Error("not authenticated");
     }
 
-    const user = await ctx.db.get(userId);
-
-    if (!user) {
-      throw new Error("user not found");
-    }
-
-    await ctx.db.patch(user._id, {
-      username,
+    await ctx.db.patch(userId, {
+      username: args.username,
       lastModified: Date.now(),
     });
 
     return { success: true };
   },
-}); 
+});
