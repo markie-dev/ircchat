@@ -17,6 +17,7 @@ import type * as auth from "../auth.js";
 import type * as channels from "../channels.js";
 import type * as http from "../http.js";
 import type * as lib_access from "../lib/access.js";
+import type * as presence from "../presence.js";
 import type * as users from "../users.js";
 
 /**
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   channels: typeof channels;
   http: typeof http;
   "lib/access": typeof lib_access;
+  presence: typeof presence;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

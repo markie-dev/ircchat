@@ -21,6 +21,16 @@ const schema = defineSchema({
     .index("by_type", ["type"])
     .index("by_name", ["name"]),
 
+  channelPresence: defineTable({
+    channelId: v.id("channels"),
+    userId: v.optional(v.id("users")),
+    anonKey: v.optional(v.string()),
+    lastActive: v.number(),
+  })
+    .index("by_channelId", ["channelId"])
+    .index("by_userId_and_channelId", ["userId", "channelId"])
+    .index("by_anonKey_and_channelId", ["anonKey", "channelId"]),
+
   channelMembers: defineTable({
     userId: v.id("users"),
     channelId: v.id("channels"),

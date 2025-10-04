@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { use, useRef, useState, useEffect } from "react";
+import { use, useRef, useState, useEffect, useMemo } from "react";
 import NotFound from "@/app/not-found";
 import { HashIcon } from "lucide-react";
 import { Message } from "@/app/components/message";
@@ -27,6 +27,10 @@ export default function Channel({
     name: channelName,
   });
   const currentUser = useQuery(api.users.getCurrentUser);
+  const online = useQuery(
+    api.presence.listOnline,
+    combined?.kind === "success" ? { channelId: combined.channel._id } : "skip"
+  );
 
   const isLoading = combined === undefined;
 
@@ -36,11 +40,51 @@ export default function Channel({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const heartbeat = useMutation(api.presence.heartbeat);
+  const leave = useMutation(api.presence.leave);
+
   useEffect(() => {
     if (combined?.kind === "success" && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView();
     }
   }, [combined?.kind]);
+
+  const anonKey = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const keyName = "ircchat_anon_key";
+    let key = window.localStorage.getItem(keyName);
+    if (!key) {
+      key = window.crypto.randomUUID();
+      window.localStorage.setItem(keyName, key);
+    }
+    return key;
+  }, []);
+
+  useEffect(() => {
+    if (combined?.kind !== "success") return;
+    let timer: number | undefined;
+    const doBeat = () => {
+      heartbeat({
+        channelId: combined.channel._id,
+        anonKey: currentUser ? undefined : (anonKey ?? undefined),
+      }).catch(() => {});
+      timer = window.setTimeout(doBeat, 10000);
+    };
+    doBeat();
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      leave({
+        channelId: combined.channel._id,
+        anonKey: currentUser ? undefined : (anonKey ?? undefined),
+        userId: currentUser?._id,
+      }).catch(() => {});
+    };
+  }, [
+    combined?.kind,
+    combined?.kind === "success" ? combined.channel._id : undefined,
+    currentUser?.username,
+    anonKey,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,8 +162,13 @@ export default function Channel({
             <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
               Online
             </h2>
-            <div className="text-sm text-neutral-800">
-              {currentUser?.username ?? "Unknown"}
+            <div className="space-y-2">
+              {["w-24", "w-16", "w-28", "w-20", "w-32"].map((w, i) => (
+                <div key={`skeleton-${i}`} className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-neutral-200 rounded-full flex-shrink-0" />
+                  <Skeleton className={`h-4 ${w} rounded-sm`} />
+                </div>
+              ))}
             </div>
           </div>
         </aside>
@@ -220,9 +269,37 @@ export default function Channel({
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
             Online
           </h2>
-          <div className="flex items-center gap-2 text-sm text-neutral-800">
-            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-            {currentUser?.username ?? "Unknown"}
+          <div className="space-y-1">
+            {(online?.users ?? []).map((u) => (
+              <div
+                key={`u-${String(u.id)}`}
+                className="flex items-center gap-2 text-sm text-neutral-800"
+              >
+                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                {u.name}
+              </div>
+            ))}
+            {online && online.anonymous > 0 && (
+              <div className="flex items-center gap-2 text-sm text-neutral-800">
+                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                {online.anonymous === 1
+                  ? "anonymous"
+                  : `anonymous x${online.anonymous}`}
+              </div>
+            )}
+            {!online && (
+              <div className="space-y-2">
+                {["w-24", "w-16", "w-28", "w-20", "w-32"].map((w, i) => (
+                  <div
+                    key={`skeleton-live-${i}`}
+                    className="flex items-center gap-2"
+                  >
+                    <div className="w-2 h-2 bg-neutral-200 rounded-full flex-shrink-0" />
+                    <Skeleton className={`h-4 ${w} rounded-sm`} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </aside>
