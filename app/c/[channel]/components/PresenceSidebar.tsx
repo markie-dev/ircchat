@@ -1,3 +1,5 @@
+import { usernameAccentColor } from "@/lib/color";
+
 export function PresenceSidebar({
   users,
   anonymous,
@@ -17,13 +19,18 @@ export function PresenceSidebar({
               key={`u-${u.id}`}
               className="flex items-center gap-2 text-sm text-neutral-800"
             >
-              <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-              {u.name}
+              <div
+                className="w-[6px] h-[6px] rounded-full flex-shrink-0"
+                style={{ backgroundColor: usernameAccentColor(u.name) }}
+              ></div>
+              <span style={{ color: usernameAccentColor(u.name) }}>
+                @{u.name}
+              </span>
             </div>
           ))}
           {anonymous > 0 && (
             <div className="flex items-center gap-2 text-sm text-neutral-800">
-              <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+              <div className="w-[6px] h-[6px] bg-green-500 rounded-full flex-shrink-0"></div>
               {anonymous === 1 ? "anonymous" : `anonymous x${anonymous}`}
             </div>
           )}
