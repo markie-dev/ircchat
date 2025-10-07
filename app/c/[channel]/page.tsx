@@ -235,12 +235,15 @@ export default function Channel({
           </div>
 
           {/* Message input */}
-          <div className="sticky bottom-0 bg-white/85 backdrop-blur-md border-t border-neutral-200 p-3">
+          <div className="sticky bottom-0 bg-white/85 backdrop-blur-md border-t border-neutral-200 pt-3 px-3">
             <textarea
               rows={1}
               disabled
               className="w-full resize-none rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300"
             />
+            <div className="mb-2 h-4 text-[11px] text-neutral-500">
+              <Skeleton className="h-3 w-32 rounded-sm" />
+            </div>
           </div>
         </div>
         <aside className="hidden md:block w-64 border-l border-neutral-200 bg-white">
