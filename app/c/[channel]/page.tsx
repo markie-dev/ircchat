@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { use, useRef, useState, useEffect, useMemo } from "react";
 import NotFound from "@/app/not-found";
 import { HashIcon } from "lucide-react";
-import { Message } from "@/app/components/message";
+import { Message } from "@/app/c/[channel]/message";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function hashUsernameToHue(name: string): number {
@@ -44,7 +44,7 @@ export default function Channel({
     combined?.kind === "success" ? { channelId: combined.channel._id } : "skip"
   );
 
-  const isLoading = combined === undefined;
+  const isLoading = combined === undefined || online === undefined;
 
   const sendMessage = useMutation(api.channels.sendMessage);
   const [messageContent, setMessageContent] = useState("");
@@ -56,10 +56,10 @@ export default function Channel({
   const leave = useMutation(api.presence.leave);
 
   useEffect(() => {
-    if (combined?.kind === "success" && messagesEndRef.current) {
+    if (!isLoading && combined?.kind === "success" && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView();
     }
-  }, [combined?.kind]);
+  }, [isLoading, combined?.kind]);
 
   const anonKey = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -286,19 +286,6 @@ export default function Channel({
                 {online.anonymous === 1
                   ? "anonymous"
                   : `anonymous x${online.anonymous}`}
-              </div>
-            )}
-            {!online && (
-              <div className="space-y-2">
-                {["w-24", "w-16", "w-28", "w-20", "w-32"].map((w, i) => (
-                  <div
-                    key={`skeleton-live-${i}`}
-                    className="flex items-center gap-2"
-                  >
-                    <div className="w-2 h-2 bg-neutral-200 rounded-full flex-shrink-0" />
-                    <Skeleton className={`h-4 ${w} rounded-sm`} />
-                  </div>
-                ))}
               </div>
             )}
           </div>
