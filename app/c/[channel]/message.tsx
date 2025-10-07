@@ -27,11 +27,11 @@ function formatTimestamp(timestamp: number): string {
   }
 }
 
-export function Message({
+export const Message = ({
   message,
   isLoading,
   loadingIndex = 0,
-}: MessageProps) {
+}: MessageProps) => {
   if (isLoading) {
     const contentWidths = [
       "w-32",
@@ -114,4 +114,4 @@ export function Message({
       </div>
     </div>
   );
-}
+};
