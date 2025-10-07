@@ -43,6 +43,10 @@ export default function Channel({
     api.presence.listOnline,
     combined?.kind === "success" ? { channelId: combined.channel._id } : "skip"
   );
+  const typingUsers = useQuery(
+    api.presence.listTyping,
+    combined?.kind === "success" ? { channelId: combined.channel._id } : "skip"
+  );
 
   const isLoading = combined === undefined || online === undefined;
 
@@ -54,6 +58,7 @@ export default function Channel({
 
   const heartbeat = useMutation(api.presence.heartbeat);
   const leave = useMutation(api.presence.leave);
+  const typingBeat = useMutation(api.presence.typingBeat);
 
   useEffect(() => {
     if (!isLoading && combined?.kind === "success" && messagesEndRef.current) {
@@ -107,6 +112,8 @@ export default function Channel({
       content: messageContent.trim(),
     });
     setMessageContent("");
+    // Stop typing after sending and cancel any pending scheduled beats.
+    sendTyping(false);
 
     requestAnimationFrame(() => {
       if (messagesEndRef.current) {
@@ -136,6 +143,73 @@ export default function Channel({
       month: "short",
       day: "numeric",
     });
+  };
+
+  const typingThrottleRef = useRef<{ last: number; timeout?: number }>({
+    last: 0,
+  });
+  const sendTyping = (typing: boolean) => {
+    if (combined?.kind !== "success" || !currentUser) return;
+    if (!typing) {
+      typingBeat({ channelId: combined.channel._id, typing: false }).catch(
+        () => {}
+      );
+      typingThrottleRef.current.last = 0;
+      if (typingThrottleRef.current.timeout) {
+        window.clearTimeout(typingThrottleRef.current.timeout);
+        typingThrottleRef.current.timeout = undefined;
+      }
+      return;
+    }
+    const now = Date.now();
+    const elapsed = now - typingThrottleRef.current.last;
+    const interval = 2000;
+    if (elapsed >= interval) {
+      typingThrottleRef.current.last = now;
+      typingBeat({ channelId: combined.channel._id, typing: true }).catch(
+        () => {}
+      );
+      return;
+    }
+    if (!typingThrottleRef.current.timeout) {
+      typingThrottleRef.current.timeout = window.setTimeout(() => {
+        typingThrottleRef.current.timeout = undefined;
+        typingThrottleRef.current.last = Date.now();
+        typingBeat({ channelId: combined.channel._id, typing: true }).catch(
+          () => {}
+        );
+      }, interval - elapsed);
+    }
+  };
+
+  const onComposerChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setMessageContent(value);
+    if (value.trim().length > 0) {
+      sendTyping(true);
+    } else {
+      sendTyping(false);
+    }
+  };
+
+  const onComposerBlur = () => {
+    sendTyping(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (combined?.kind === "success" && currentUser) {
+        typingBeat({ channelId: combined.channel._id, typing: false }).catch(
+          () => {}
+        );
+      }
+    };
+  }, []);
+
+  const formatTypingNames = (names: string[]) => {
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    return `${names[0]}, ${names[1]}, and ${names[2]}`;
   };
 
   if (isLoading) {
@@ -251,17 +325,38 @@ export default function Channel({
             </div>
           )}
         </div>
-        <div className="sticky bottom-0 bg-white/85 backdrop-blur-md border-t border-neutral-200 p-3">
+        <div className="sticky bottom-0 bg-white/85 backdrop-blur-md border-t border-neutral-200 pt-3 px-3">
           <form onSubmit={handleSubmit}>
             <textarea
               ref={textareaRef}
               value={messageContent}
-              onChange={(e) => setMessageContent(e.target.value)}
+              onChange={onComposerChange}
               onKeyDown={onComposerKeyDown}
+              onBlur={onComposerBlur}
               placeholder={`message #${channel.name}`}
               rows={1}
               className="w-full resize-none rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300"
             />
+            {(() => {
+              const names = (typingUsers ?? [])
+                .filter((u) => u.id !== currentUser?._id)
+                .map((u) => u.name);
+              const maxShow = 3;
+              const shown = names.slice(0, maxShow);
+              const extra = names.length - shown.length;
+              const prefix = formatTypingNames(shown);
+              const text =
+                names.length === 0
+                  ? "\u00A0"
+                  : extra > 0
+                    ? `${prefix}, and ${extra} more are typing...`
+                    : `${prefix} ${shown.length > 1 ? "are" : "is"} typing...`;
+              return (
+                <div className="mb-2 h-4 text-[11px] text-neutral-500">
+                  {text}
+                </div>
+              );
+            })()}
           </form>
         </div>
       </div>

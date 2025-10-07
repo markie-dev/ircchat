@@ -26,6 +26,7 @@ const schema = defineSchema({
     userId: v.optional(v.id("users")),
     anonKey: v.optional(v.string()),
     lastActive: v.number(),
+    typingAt: v.optional(v.number()),
   })
     .index("by_channelId", ["channelId"])
     .index("by_userId_and_channelId", ["userId", "channelId"])

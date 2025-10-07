@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 const PRESENCE_TTL_MS = 30_000;
+const TYPING_TTL_MS = 5_000;
 
 export const heartbeat = mutation({
   args: {
@@ -28,6 +29,7 @@ export const heartbeat = mutation({
         channelId: args.channelId,
         userId: authUserId,
         lastActive: now,
+        typingAt: undefined,
       });
       return null;
     }
@@ -49,6 +51,7 @@ export const heartbeat = mutation({
       channelId: args.channelId,
       anonKey,
       lastActive: now,
+      typingAt: undefined,
     });
     return null;
   },
@@ -61,7 +64,6 @@ export const leave = mutation({
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    // Prefer explicit userId to ensure cleanup even after logout.
     if (args.userId) {
       const existing = await ctx.db
         .query("channelPresence")
@@ -137,5 +139,58 @@ export const listOnline = query({
         })),
       anonymous: Array.from(byKey.values()).reduce((sum, n) => sum + n, 0),
     };
+  },
+});
+
+export const typingBeat = mutation({
+  args: {
+    channelId: v.id("channels"),
+    typing: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const authUserId = await getAuthUserId(ctx);
+
+    if (authUserId) {
+      const existing = await ctx.db
+        .query("channelPresence")
+        .withIndex("by_userId_and_channelId", (q) =>
+          q.eq("userId", authUserId).eq("channelId", args.channelId)
+        )
+        .unique();
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          typingAt: args.typing ? now : undefined,
+        });
+        return null;
+      }
+      await ctx.db.insert("channelPresence", {
+        channelId: args.channelId,
+        userId: authUserId,
+        lastActive: now,
+        typingAt: args.typing ? now : undefined,
+      });
+      return null;
+    }
+    // todo: support anonymous typing
+    return null;
+  },
+});
+
+export const listTyping = query({
+  args: { channelId: v.id("channels") },
+  handler: async (ctx, args) => {
+    const cutoff = Date.now() - TYPING_TTL_MS;
+    const rows = await ctx.db
+      .query("channelPresence")
+      .withIndex("by_channelId", (q) => q.eq("channelId", args.channelId))
+      .collect();
+
+    const active = rows.filter((r) => (r.typingAt ?? 0) >= cutoff && r.userId);
+    const userIds = Array.from(new Set(active.map((r) => r.userId!)));
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+    return users
+      .filter((u): u is NonNullable<typeof u> => Boolean(u))
+      .map((u) => ({ id: u._id, name: u.username ?? u.email.split("@")[0] }));
   },
 });
