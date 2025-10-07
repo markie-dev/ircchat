@@ -16,6 +16,18 @@ function hashUsernameToHue(name: string): number {
   return Math.abs(hash) % 360;
 }
 
+function DateDivider({ label }: { label: string }) {
+  return (
+    <div className="my-3 flex items-center" role="separator" aria-label={label}>
+      <div className="h-px flex-1 bg-neutral-200" />
+      <span className="mx-2 bg-white px-2 text-[11px] text-neutral-500 border border-neutral-200 rounded-full">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-neutral-200" />
+    </div>
+  );
+}
+
 export default function Channel({
   params,
 }: {
@@ -218,7 +230,7 @@ export default function Channel({
             </div>
           ) : (
             <div className="flex-1 flex flex-col justify-end">
-              <div className="space-y-0.5 pb-3 pt-3">
+              <div className="space-y-0.5 pb-3 pt-2">
                 {messages.map((m, idx) => {
                   const prev = idx > 0 ? messages[idx - 1] : null;
                   const showDivider =
@@ -228,18 +240,7 @@ export default function Channel({
                   return (
                     <div key={m._id}>
                       {showDivider && (
-                        <div className="sticky top-10 z-0 my-3 flex items-center justify-center">
-                          <div className="relative w-full">
-                            <div className="absolute inset-0 flex items-center">
-                              <div className="w-full border-t border-neutral-200" />
-                            </div>
-                            <div className="relative flex justify-center">
-                              <span className="bg-white px-2 text-[11px] text-neutral-500 border border-neutral-200 rounded-full">
-                                {formatDay(m._creationTime)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        <DateDivider label={formatDay(m._creationTime)} />
                       )}
                       <Message message={m} />
                     </div>
